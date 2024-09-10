@@ -56,17 +56,21 @@ const processImages = (sourcePath, targetPath, images) => {
     const mobileOutput = path.join(targetPath, `${baseName}_mobile.webp`);
     const desktopOutput = path.join(targetPath, `${baseName}_desktop.webp`);
 
+    console.log(`./${mobileOutput}`)
     if (!forceReplace && (fs.existsSync(mobileOutput) || fs.existsSync(desktopOutput))) {
       console.warn(`Warning: Output file(s) for ${image} already exist. Use --force to overwrite.`);
       return;
     }
-
+console.log(path.join(sourcePath, image));
     sharp(path.join(sourcePath, image))
       .resize(300)
       .webp()
-      .toFile(mobileOutput)
+      .toFile(`./${mobileOutput}`)
       .then((info) => console.log(`Created: ${mobileOutput}`, info))
       .catch((err) => console.error(err));
+
+
+
 
     sharp(path.join(sourcePath, image))
       .resize(900)
