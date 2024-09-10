@@ -1,0 +1,88 @@
+#!/usr/bin/env node
+
+const sharp = require("sharp");
+const fs = require("node:fs");
+const path = require("path");
+
+// Get command-line arguments
+const args = process.argv.slice(2);
+const sourcePath = args[0];
+const targetPath = args[1];
+const imageExtension = args[2] || ".jpg";
+const forceReplace = args.includes("--force");
+
+// Display help message
+if (args.includes("--help") || args.includes("-h")) {
+  console.log(`
+    Usage: image-enhancer <source-path> <target-path> [image-extension] [--force]
+
+    Arguments:
+      <source-path>       Path to the source folder containing images.
+      <target-path>       Path to the target folder for output images.
+      [image-extension]   (Optional) Extension of source images, defaults to .jpg.
+      [--force]           (Optional) Force overwrite existing files.
+
+    Example:
+      image-enhancer ./source ./target .png --force
+  `);
+  process.exit(0);
+}
+
+// Validate arguments
+if (!sourcePath || !targetPath) {
+  console.error("Error: Source and target paths must be specified.");
+  process.exit(1);
+}
+
+const validateFolder = (folderPath) => {
+  if (!fs.existsSync(folderPath)) {
+    console.error(`Error: Folder ${folderPath} does not exist.`);
+    process.exit(1);
+  }
+};
+
+const validateImagesExist = (folderPath) => {
+  const images = fs.readdirSync(folderPath).filter((file) => path.extname(file) === imageExtension);
+  if (images.length === 0) {
+    console.error(`Error: No images with extension ${imageExtension} found in ${folderPath}.`);
+    process.exit(1);
+  }
+  return images;
+};
+
+const processImages = (sourcePath, targetPath, images) => {
+  images.forEach((image) => {
+    const baseName = path.basename(image, imageExtension);
+    const mobileOutput = path.join(targetPath, `${baseName}_mobile.webp`);
+    const desktopOutput = path.join(targetPath, `${baseName}_desktop.webp`);
+
+    if (!forceReplace && (fs.existsSync(mobileOutput) || fs.existsSync(desktopOutput))) {
+      console.warn(`Warning: Output file(s) for ${image} already exist. Use --force to overwrite.`);
+      return;
+    }
+
+    sharp(path.join(sourcePath, image))
+      .resize(300)
+      .webp()
+      .toFile(mobileOutput)
+      .then((info) => console.log(`Created: ${mobileOutput}`, info))
+      .catch((err) => console.error(err));
+
+    sharp(path.join(sourcePath, image))
+      .resize(900)
+      .webp()
+      .toFile(desktopOutput)
+      .then((info) => console.log(`Created: ${desktopOutput}`, info))
+      .catch((err) => console.error(err));
+  });
+};
+
+// Validate folders
+validateFolder(sourcePath);
+validateFolder(targetPath);
+
+// Validate images
+const images = validateImagesExist(sourcePath);
+
+// Process images
+processImages(sourcePath, targetPath, images);
